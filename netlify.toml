@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Vue Router tidak dipakai di proyek ini (single view), tapi redirect ini
+# membuat aman jika kamu menambahkan routing nanti.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

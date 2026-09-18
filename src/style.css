@@ -1,0 +1,80 @@
+:root {
+  --bg: #0f1115;
+  --surface: #151821;
+  --surface-raised: #1d212c;
+  --hairline: #292f3d;
+  --text: #f0f2f5;
+  --text-muted: #8b93a5;
+  --text-faint: #4e5668;
+  --accent: #38bdf8;
+  --accent-dim: #0369a1;
+  --accent-ink: #0c1e2d;
+  --other: #34d399;
+  --other-dim: #064e3b;
+  --danger: #f87171;
+
+  /* --font-serif: 'IBM Plex Serif', Georgia, serif; */
+  --font-serif: 'Times New Roman', Times, serif;
+  /* --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; */
+  --font-sans: 'Arial', Helvetica, sans-serif;
+  /* --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace; */
+  --font-mono:'Lucida Console', Courier New, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hairline);
+  border-radius: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
