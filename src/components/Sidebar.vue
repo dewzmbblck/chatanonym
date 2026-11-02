@@ -54,7 +54,7 @@ async function copyMyId() {
       </div>
     </div> -->
 
-    <form class="sidebar__openform" @submit.prevent="submitId">
+    <!-- <form class="sidebar__openform" @submit.prevent="submitId">
       <label class="sidebar__myid-label" for="target-id">BUKA OBROLAN PRIBADI MENGGUNAKAN ID</label>
       <div class="sidebar__openform-row">
         <input
@@ -70,18 +70,18 @@ async function copyMyId() {
         </button>
       </div>
       <p v-if="openIdError" class="sidebar__openform-error">{{ openIdError }}</p>
-    </form>
+    </form> -->
 
-    <button
+    <!-- <button
       class="sidebar__item"
       :class="{ 'sidebar__item--active': activeThread === 'public' }"
       @click="emit('select', 'public')"
     >
       <span class="sidebar__item-icon"><i class="bi bi-broadcast-pin"></i></span>
       <span class="sidebar__item-name">Saluran Umum</span>
-    </button>
+    </button> -->
 
-    <p class="sidebar__section">PERCAKAPAN PRIBADI</p>
+    <!-- <p class="sidebar__section">PERCAKAPAN PRIBADI</p>
 
     <div class="sidebar__list">
       <button
@@ -99,7 +99,7 @@ async function copyMyId() {
       <p v-if="contacts.length === 0" class="sidebar__empty">
         Belum ada percakapan pribadi. Tempelkan ID seseorang di atas untuk memulai.
       </p>
-    </div>
+    </div> -->
   </aside>
 </template>
 
