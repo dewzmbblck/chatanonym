@@ -188,3 +188,31 @@ anon-chat/
 - Panjang pesan dan nama samaran sudah dibatasi lewat `check constraint` di database (bukan cuma di frontend), supaya tidak bisa dilewati.
 - Tidak ada rate limiting bawaan di skema ini. Untuk produksi dengan trafik publik, pertimbangkan menambah Supabase Edge Function / database trigger yang membatasi jumlah pesan per `sender_id` per menit.
 - Riwayat pesan privat tersimpan permanen di database selama tidak dihapus manual — ini bukan "self-destructing message". Tambahkan cron job (Supabase pg_cron) jika ingin auto-hapus pesan lama.
+
+---
+
+## 10. Hapus pesan (dengan password)
+
+Pesan bisa dihapus **satu per satu** (ikon tempat sampah di samping waktu pesan) atau **banyak sekaligus** (tombol **Pilih** di header → centang pesan / **Pilih semua** → **Hapus**). Setiap penghapusan meminta **password (secret word)**.
+
+### Setup (sekali saja)
+
+1. Jalankan ulang `supabase/schema.sql` di SQL Editor (aman diulang) — ini menambah bagian 5: tabel `admin_secret`, `delete_attempts`, fungsi `set_delete_secret` dan `delete_messages`.
+2. Tetapkan password Anda di SQL Editor:
+
+   ```sql
+   select public.set_delete_secret('password-rahasia-anda');
+   ```
+
+   Jalankan perintah yang sama untuk **mengganti** password kapan saja. Minimal 6 karakter.
+
+### Cara kerja & keamanan
+
+- Password **tidak ada di kode frontend maupun `.env`**. Di database hanya tersimpan **hash bcrypt**-nya, di tabel yang tidak bisa diakses lewat API (RLS aktif tanpa policy).
+- Verifikasi dilakukan di database oleh fungsi `delete_messages(message_ids, secret)`; tidak ada policy `DELETE` pada tabel `messages`, jadi tidak ada jalan lain untuk menghapus lewat API.
+- **Anti brute-force**: 5 kali salah berturut-turut → sesi tersebut dikunci 15 menit.
+- Maksimal 200 pesan sekali hapus.
+- Penghapusan tersinkron **realtime** ke semua klien yang sedang terbuka (event `DELETE` hanya membawa `id`, bukan isi pesan).
+- Siapa pun yang tahu password dapat menghapus pesan apa pun (publik maupun pribadi) — perlakukan seperti password admin.
+
+> Keterbatasan: karena sesi anonim bisa dibuat sebanyak-banyaknya, penguncian per sesi bukan perlindungan mutlak terhadap penyerang yang sengaja membuat banyak sesi. Pakai password yang panjang dan acak.

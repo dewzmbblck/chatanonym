@@ -29,6 +29,7 @@ const knownNicknames = reactive({})
 
 let publicChannel = null
 let inboxChannel = null
+let deleteChannel = null
 
 function nicknameFor(id) {
   const thread = messages[id]
@@ -63,6 +64,60 @@ function upsertMessage(thread, row) {
   if (!messages[thread]) messages[thread] = []
   if (messages[thread].some((m) => m.id === row.id)) return
   messages[thread].push(row)
+  if (row.sender_id !== myId.value && row.sender_name) {
+    knownNicknames[row.sender_id] = row.sender_name
+  }
+}
+
+// Buang pesan dari semua thread (dipakai setelah hapus sendiri, maupun saat
+// event DELETE realtime datang dari klien lain). Key thread tetap dipertahankan
+// supaya kontak tidak hilang dari sidebar.
+function removeMessages(ids) {
+  if (!ids?.length) return
+  const gone = new Set(ids)
+  for (const key of Object.keys(messages)) {
+    if (messages[key].some((m) => gone.has(m.id))) {
+      messages[key] = messages[key].filter((m) => !gone.has(m.id))
+    }
+  }
+}
+
+// Dipanggil ChatPanel. Password diverifikasi di database (rpc delete_messages),
+// bukan di browser. Mengembalikan { ok, deleted? , error? }.
+async function deleteMessages(ids, secret) {
+  const { data, error } = await supabase.rpc('delete_messages', {
+    message_ids: ids,
+    secret,
+  })
+
+  if (error) return { ok: false, error: 'Gagal menghubungi server: ' + error.message }
+
+  if (!data?.ok) {
+    switch (data?.reason) {
+      case 'wrong_secret':
+        return {
+          ok: false,
+          error: data.attempts_left > 0
+            ? `Password salah. Sisa percobaan: ${data.attempts_left}.`
+            : 'Password salah. Terlalu banyak percobaan, coba lagi nanti.',
+        }
+      case 'locked': {
+        const mins = Math.ceil((data.retry_after_seconds || 0) / 60)
+        return { ok: false, error: `Terlalu banyak percobaan. Coba lagi sekitar ${mins} menit.` }
+      }
+      case 'secret_not_set':
+        return { ok: false, error: 'Secret belum diatur di database (lihat README bagian hapus pesan).' }
+      case 'too_many':
+        return { ok: false, error: `Maksimal ${data.max} pesan sekali hapus.` }
+      case 'empty':
+        return { ok: false, error: 'Tidak ada pesan yang dipilih.' }
+      default:
+        return { ok: false, error: 'Penghapusan ditolak.' }
+    }
+  }
+
+  removeMessages(data.deleted)
+  return { ok: true, deleted: data.deleted.length }
 }
 
 async function bootstrap() {
@@ -169,6 +224,17 @@ function subscribeRealtime() {
       }
     )
     .subscribe()
+
+  // Sinkronkan penghapusan ke semua klien. Event DELETE tidak bisa difilter dan
+  // hanya membawa primary key (id), jadi tidak ada isi pesan yang bocor.
+  deleteChannel = supabase
+    .channel('messages-deletes')
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'messages' },
+      (payload) => removeMessages([payload.old?.id])
+    )
+    .subscribe()
 }
 
 function selectThread(threadId) {
@@ -233,6 +299,7 @@ onMounted(bootstrap)
 onBeforeUnmount(() => {
   publicChannel?.unsubscribe()
   inboxChannel?.unsubscribe()
+  deleteChannel?.unsubscribe()
 })
 </script>
 
@@ -267,6 +334,7 @@ onBeforeUnmount(() => {
       :is-private="activeThread !== 'public'"
       :my-id="myId"
       :messages="activeMessages"
+      :delete-fn="deleteMessages"
       @send="sendMessage"
     />
   </div>
